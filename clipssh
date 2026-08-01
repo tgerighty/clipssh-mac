@@ -154,6 +154,13 @@ if [[ "$HOST" != *"@"* ]]; then
     HOST=$(resolve_alias "$HOST")
 fi
 
+# Extract port if specified in user@host:port format
+SSH_PORT=""
+if [[ "$HOST" =~ ^(.*):([0-9]+)$ && "${BASH_REMATCH[1]}" != *:* ]]; then
+    HOST="${BASH_REMATCH[1]}"
+    SSH_PORT="${BASH_REMATCH[2]}"
+fi
+
 # Check OS and clipboard tool
 if [[ "$OSTYPE" == "darwin"* ]]; then
     if ! command -v pngpaste &> /dev/null; then
@@ -196,9 +203,15 @@ fi
 REMOTE_DIR="${CLIPSSH_REMOTE_DIR:-/tmp}"
 REMOTE_PATH="$REMOTE_DIR/clipboard-$(date +%s).png"
 
+# Prepare SSH options
+SSH_OPTS=()
+if [[ -n "$SSH_PORT" ]]; then
+    SSH_OPTS+=("-p" "$SSH_PORT")
+fi
+
 # Upload via SSH. umask 077 keeps the remote file at mode 0600 so screenshots
 # aren't world-readable on multi-user hosts (default /tmp is shared).
-if ! cat "$TEMP_FILE" | ssh "$HOST" "umask 077 && cat > $REMOTE_PATH" 2>/dev/null; then
+if ! cat "$TEMP_FILE" | ssh "${SSH_OPTS[@]}" "$HOST" "umask 077 && cat > $REMOTE_PATH" 2>/dev/null; then
     error "Failed to upload to $HOST"
 fi
 

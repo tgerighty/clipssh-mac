@@ -36,6 +36,41 @@ clipssh user@myserver
 # The image will auto-attach
 ```
 
+## Custom SSH Port
+
+Specify a custom SSH port directly in the host target using the `user@host:port` format:
+
+```bash
+clipssh user@myserver.com:2222
+```
+
+This syntax is also fully supported in aliases and default host environment variables:
+
+```bash
+# Save an alias with a custom port
+clipssh alias add myserver user@myserver.com:2222
+
+# Or configure it as default
+export CLIPSSH_HOST=user@myserver.com:2222
+```
+
+### Alternative: SSH Configuration (`~/.ssh/config`)
+
+Since `clipssh` delegates connections directly to your system's standard `ssh` client, it seamlessly obeys any configurations defined in your local `~/.ssh/config` file. This is often the cleanest way to manage custom ports, private keys, or proxy jumps.
+
+Example config block:
+```ssh
+Host myserver
+    HostName myserver.example.com
+    User user
+    Port 2222
+```
+
+Once defined in your SSH config, you can simply run:
+```bash
+clipssh myserver
+```
+
 ## Aliases
 
 Save hosts under short names so you don't have to type `user@host` every time.
