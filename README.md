@@ -1,135 +1,185 @@
-# clipssh
+# clipssh-mac
 
-Send clipboard screenshots to remote SSH hosts. Perfect for pasting images into AI coding tools like Claude Code or OpenCode running over SSH.
+A macOS menu bar app. It sends the screenshot on your clipboard to an SSH host.
+It then copies the remote file path back to your clipboard.
 
-## The Problem
+Take a screenshot. Click the menu bar icon. Paste the path into your SSH
+session.
 
-When using Claude Code, OpenCode (or similar tools) over SSH, you can't paste images from your local clipboard. The remote terminal has no access to your local display server.
-
-## The Solution
-
-`clipssh` extracts the screenshot from your local clipboard, uploads it to the remote server, and copies the file path to your clipboard. Just paste the path into Claude Code, OpenCode, or any terminal tool and it auto-attaches the image.
+This project derives from a command-line script of the same name. See
+[Relation to clipssh](#relation-to-clipssh) below.
 
 ## Install
 
 ```bash
-# macOS (requires Homebrew)
-brew install pngpaste
-curl -fsSL https://raw.githubusercontent.com/samuellawrentz/clipssh/main/install.sh | bash
-
-# Or clone and install
-git clone https://github.com/samuellawrentz/clipssh.git
-cd clipssh
-./install.sh
+brew install tgerighty/tap/clipssh-mac
 ```
 
-## Usage
+The formula builds from source. Homebrew therefore downloads no prebuilt app
+bundle, so macOS applies no quarantine attribute and Gatekeeper does not
+intervene. `make app` ad-hoc code-signs the built bundle (no Apple Developer
+account needed) so `codesign --verify` accepts it, but the signature carries
+no Apple Developer identity and the app is not notarized.
+
+Homebrew installs the app into its own prefix. Link it into `/Applications`,
+which `Launch at login` requires:
 
 ```bash
-# 1. Take a screenshot to the clipboard
-# macOS: Cmd+Shift+Ctrl+4 (select area, copies to clipboard)
-
-# 2. Run the clipssh command to move the clipboard file to the SSH machine
-clipssh user@myserver
-
-# 3. Cmd/Ctrl + V in SSH Machine
-# The image will auto-attach
+ln -sfn "$(brew --prefix clipssh-mac)/clipssh-mac.app" /Applications/clipssh-mac.app
+open /Applications/clipssh-mac.app
 ```
 
-## Custom SSH Port
-
-Specify a custom SSH port directly in the host target using the `user@host:port` format:
+Without Homebrew, build from source:
 
 ```bash
-clipssh user@myserver.com:2222
+git clone https://github.com/tgerighty/clipssh-mac.git
+cd clipssh-mac
+make install
 ```
 
-This syntax is also fully supported in aliases and default host environment variables:
+This builds the app with Swift Package Manager and copies it to
+`/Applications/clipssh-mac.app`.
 
-```bash
-# Save an alias with a custom port
-clipssh alias add myserver user@myserver.com:2222
+Three different floors apply here, each stricter than the last:
 
-# Or configure it as default
-export CLIPSSH_HOST=user@myserver.com:2222
+| | Needs |
+|---|---|
+| **Run** the app | macOS 13 or later |
+| **Build** the app | Xcode 15 (or the matching Command Line Tools), on macOS 13.5 or later |
+| **Run its test suite** (`swift test`) | Xcode 16 (Swift 6) — the test suites use `import Testing`, which no earlier Xcode bundles |
+
+So a contributor on macOS 13.5 can build and run the app, but needs macOS 14
+(for Xcode 16) to run the tests locally. A contributor on plain macOS 13
+(below 13.5) can run the app but cannot build it. CI always runs the tests,
+on a current macOS runner.
+
+`make app` ad-hoc code-signs the built bundle (see [Install](#install)); it
+is not notarized, and carries no Apple Developer identity.
+
+## Use
+
+| Action | Result |
+|---|---|
+| Left-click the icon | Send the clipboard image to the default target |
+| Right-click the icon | Open the menu |
+| Global hotkey (optional) | Send the clipboard image to the default target |
+
+The menu shows the last result at the top. Selecting a target in the `Target`
+submenu **sets the default**. It does not send.
+
+The `Add from ~/.ssh/config` submenu lists hosts found in your SSH config that
+are not already targets. Add a target from there, or add one directly in
+`Targets…`.
+
+On first run, with no targets configured, a left-click opens `Targets…`
+instead of showing an error.
+
+## Targets window
+
+Open it from the menu (`Targets…`). For each target you set:
+
+- **Label** — a name shown in the menu.
+- **Destination** — `host` or `user@host`. A bare host name gets its
+  `HostName`, `User`, and `IdentityFile` from `~/.ssh/config`.
+- **Port** (optional) — an integer from 1 to 65535. An invalid entry is not
+  saved; the previously stored port is kept.
+
+The window also has:
+
+- **Set as default** — makes the selected target the one a left-click or the
+  hotkey sends to.
+- **Test connection** — runs the same SSH command as a real upload, but with
+  `true` instead of the file write, so you find a connection problem when you
+  add the target, not when you need it.
+- A **hotkey recorder** — sets the one optional global hotkey. It always
+  sends to the default target. The app uses Carbon's `RegisterEventHotKey`,
+  which does not require Accessibility permission.
+
+## Configuration
+
+Targets live in `~/.clipssh/clipssh-mac.json`, with file permissions `0600`.
+Nothing is stored inside the app bundle.
+
+Set `CLIPSSH_MAC_CONFIG_DIR` to use a different directory instead.
+
+On first run, the app imports `~/.clipssh/aliases` if that file exists (see
+[Relation to clipssh](#relation-to-clipssh)). It reads the file once and never
+writes to it.
+
+## How it works
+
+The app reads PNG data from the system pasteboard (`NSPasteboard`) and pipes
+it to `/usr/bin/ssh`:
+
+```sh
+/bin/sh -c 'umask 077; set -C; cat > "$1"' sh '/tmp/clipboard-<epoch-seconds>-<4 hex chars>.png'
 ```
 
-### Alternative: SSH Configuration (`~/.ssh/config`)
+Every connection uses `-o BatchMode=yes -o ConnectTimeout=8`, plus `-p <port>`
+if you set one. `BatchMode=yes` turns a password prompt into an immediate
+error, because a menu bar app has no terminal to type a password into. A
+30-second watchdog stops the command if the connection hangs.
 
-Since `clipssh` delegates connections directly to your system's standard `ssh` client, it seamlessly obeys any configurations defined in your local `~/.ssh/config` file. This is often the cleanest way to manage custom ports, private keys, or proxy jumps.
+Using the system `ssh` command means `~/.ssh/config`, agent authentication,
+and `ControlMaster` connection reuse all work without extra configuration.
 
-Example config block:
-```ssh
-Host myserver
-    HostName myserver.example.com
-    User user
-    Port 2222
-```
+`umask 077` gives the remote file mode `0600`, so the screenshot is not
+readable by other users on a shared host. `set -C` (noclobber) makes the
+write fail if a file or symlink already exists at that path, instead of
+following it — `/tmp` is world-writable, so a plain `>` redirect could be
+tricked into overwriting an attacker-readable location.
 
-Once defined in your SSH config, you can simply run:
-```bash
-clipssh myserver
-```
+## Notes and limits
 
-## Aliases
+- **The app writes to `/tmp` only.** The remote directory is not
+  configurable.
+- **The app never deletes a remote file.** On Linux, `systemd-tmpfiles`
+  clears `/tmp` on its own schedule (10 days by default on many
+  distributions).
+- **`Include` in `~/.ssh/config` is not supported.** If the app finds an
+  `Include` line, the discovery submenu shows a disabled note: "Some hosts
+  hidden (Include not supported)".
+- **The app cannot be sandboxed, and can never be on the Mac App Store.** It
+  reads `~/.ssh/config` and runs `/usr/bin/ssh` directly; the App Sandbox
+  forbids both.
+- **The app never trusts an unknown host for you.** It always passes
+  `StrictHostKeyChecking=yes`, overriding any looser setting in your own
+  `~/.ssh/config`. If you have not connected to a host before, connect once
+  in Terminal to accept its key first.
+- Images only. Text and files on the clipboard are not sent.
 
-Save hosts under short names so you don't have to type `user@host` every time.
+## Testing
 
-```bash
-# Save an alias
-clipssh alias add myserver user@myserver.com
+The core logic (`ClipsshCore`) has 129 unit tests, and the app layer
+(`ClipsshMac`) has 24 more — 153 in total, all run with `swift test`. They
+cover the SSH config parser, the target store, the uploader's error mapping
+and destination validation, the remote command format, target-mutation
+concurrency, and the Targets window's model. No test touches a real network
+connection or a real pasteboard. CI runs `swift build`, `swift test`, and
+`make app` on pushes to `main` and on pull requests.
 
-# List saved aliases
-clipssh alias list
+`UITests/` holds the start of an XCUITest end-to-end suite, but there is
+nothing to run yet: it contains a single discovery probe that prints the
+accessibility tree and asserts nothing. It has never run successfully — it
+needs Accessibility permission granted to the test runner and a logged-in GUI
+session, neither of which CI provides.
 
-# Remove an alias
-clipssh alias remove myserver
+CI does not cover everything, either: 10 of the 153 tests construct a real
+`NSStatusItem` or `NSWindow`, which need the same window server the XCUITest
+suite needs and GitHub's macOS runners do not have. They are gated with
+`.enabled(if: hasWindowServer)`, which checks for the `CI` environment
+variable GitHub Actions always sets, and show up as **skipped**, not failed,
+in the CI log. Plain `swift test` on a developer machine has a real window
+server and runs all 153.
 
-# Use an alias directly
-clipssh myserver
-```
+## Relation to clipssh
 
-Aliases are stored in `~/.clipssh/aliases`, one `name=user@host` per line.
+This app derives from [clipssh](https://github.com/samuellawrentz/clipssh), a
+bash command-line script by Samuel Lawrentz. That script is not part of this
+project and is not shipped here. If you want the original CLI, get it from
+its own repository: https://github.com/samuellawrentz/clipssh.
 
-## Set Default Host
+## Licence
 
-```bash
-# Add to ~/.zshrc or ~/.bashrc
-export CLIPSSH_HOST=user@myserver
-
-# Now just run:
-clipssh
-```
-
-`CLIPSSH_HOST` also accepts an alias name.
-
-## Change Upload Directory
-
-Uploads land in `/tmp` by default. Override with `CLIPSSH_REMOTE_DIR`:
-
-```bash
-export CLIPSSH_REMOTE_DIR=~/.cache/clipssh   # must already exist on the remote
-```
-
-Files are written with `umask 077` so they're created as `0600` (owner-readable only) — important on shared hosts where `/tmp` is world-readable by default.
-
-## Requirements
-
-**macOS:**
-- `pngpaste` - Install with `brew install pngpaste`
-- SSH access to remote host
-
-**Linux:**
-- `xclip` (X11) or `wl-clipboard` (Wayland)
-- SSH access to remote host
-
-## How It Works
-
-1. Extracts PNG image from your local clipboard
-2. Uploads to `$CLIPSSH_REMOTE_DIR/clipboard-<timestamp>.png` (default `/tmp`) on remote host via SSH, with `umask 077` so the file is `0600`
-3. Copies the remote path to your clipboard
-4. You paste the path into Claude Code, OpenCode, or any tool, which reads and displays the image
-
-## License
-
-MIT
+MIT. See `LICENSE`. The licence keeps the original copyright notice from
+Samuel Lawrentz, with a second notice added for this work.

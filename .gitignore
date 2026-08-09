@@ -1,1 +1,11 @@
+.build/
+.swiftpm/
+*.xcodeproj
+clipssh-mac.app/
+.DS_Store
 .omc/
+
+# Never commit configuration. Targets stay in ~/.clipssh/.
+clipssh-mac.json
+*.json.corrupt
+aliases

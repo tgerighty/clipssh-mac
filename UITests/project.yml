@@ -1,0 +1,25 @@
+name: ClipsshMacUITests
+options:
+  bundleIdPrefix: com.tgerighty
+  deploymentTarget:
+    macOS: "13.0"
+targets:
+  ClipsshMacUITests:
+    type: bundle.ui-testing
+    platform: macOS
+    sources:
+      - ClipsshMacUITests
+    info:
+      path: ClipsshMacUITests/Info.plist
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.tgerighty.clipssh-mac.uitests
+        SWIFT_VERSION: "5.0"
+schemes:
+  ClipsshMacUITests:
+    build:
+      targets:
+        ClipsshMacUITests: [test]
+    test:
+      targets:
+        - ClipsshMacUITests

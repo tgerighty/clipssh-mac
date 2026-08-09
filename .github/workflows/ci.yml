@@ -1,0 +1,46 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  build-and-test:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          persist-credentials: false
+
+      - name: Show toolchain
+        run: swift --version
+
+      - name: Build
+        run: swift build
+
+      # No ClipsshCore test touches a network or a pasteboard, so this runs
+      # headlessly. The XCUITest suite is deliberately NOT run here: GitHub's
+      # macOS runners have no logged-in GUI session, so it would always fail.
+      # It is a local gate, run with `make uitest`. A small number of
+      # ClipsshMacTests that construct a real NSStatusItem or NSWindow are
+      # gated with `.enabled(if: hasWindowServer)` for the same reason —
+      # GitHub Actions sets CI, which that check reads — and are skipped
+      # (not failed) here; they still run with plain `swift test` locally.
+      - name: Test
+        run: swift test
+
+      - name: Assemble app bundle
+        run: make app
+
+      - name: Verify the bundle is complete
+        run: |
+          test -f clipssh-mac.app/Contents/Info.plist
+          test -x clipssh-mac.app/Contents/MacOS/ClipsshMac
+          /usr/libexec/PlistBuddy -c "Print :LSUIElement" clipssh-mac.app/Contents/Info.plist | grep -q true
+
+      - name: Verify the bundle's ad-hoc signature
+        run: codesign --verify --deep --strict clipssh-mac.app
