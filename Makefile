@@ -41,6 +41,21 @@ clean:
 # Requires: xcodegen installed, and Accessibility permission on first run.
 # Depends on `app` (not `install`) so this never touches /Applications.
 uitest: app
+	# XCUITest launches the app itself. A copy already running (from `open`,
+	# or left running after a previous session) makes launch() fail with
+	# "does not have a process ID", and every test then burns its timeout.
+	-@pkill -f 'clipssh-mac.app/Contents/MacOS/ClipsshMac' 2>/dev/null || true
+	@# pkill returns once SIGTERM is sent, not once the process is gone. Wait for
+	@# it to actually exit, or xcodebuild races a still-running instance and every
+	@# test burns its launch timeout.
+	@n=0; while pgrep -f 'clipssh-mac.app/Contents/MacOS/ClipsshMac' >/dev/null 2>&1; do \
+		n=$$((n+1)); \
+		if [ $$n -gt 50 ]; then \
+			echo "ERROR: ClipsshMac is still running after 5s; kill it and retry" >&2; \
+			exit 1; \
+		fi; \
+		sleep 0.1; \
+	done
 	cd UITests && xcodegen generate
 	xcodebuild test \
 		-project UITests/ClipsshMacUITests.xcodeproj \

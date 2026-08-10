@@ -40,6 +40,12 @@ struct TargetsView: View {
             }
             Divider()
             HStack(spacing: 4) {
+                // macOS derives the accessibility label for these from the SF
+                // Symbol itself: the plus button surfaces as "Add" and the minus
+                // as "Remove". Verified at runtime by dumping the window's
+                // buttons. .accessibilityIdentifier and .accessibilityLabel do
+                // NOT propagate through `Button { Image }` here, so declaring
+                // them would only mislead — the UI tests query the real labels.
                 Button(action: model.add) { Image(systemName: "plus") }
                 Button(action: model.remove) { Image(systemName: "minus") }
                     .disabled(model.selected == nil)
