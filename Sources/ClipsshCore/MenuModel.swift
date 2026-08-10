@@ -22,26 +22,46 @@ public struct MenuModel: Equatable {
     public var discoverable: [String]
     public var showsIncludeNote: Bool
 
-    public static func build(
-        config: Config,
-        lastOutcome: SendOutcome?,
-        configIsCorrupt: Bool,
-        lastSaveError: String?,
-        lastLoadWarning: String?,
-        sshConfig: SSHConfigParser.Result?
-    ) -> MenuModel {
+    /// Groups the inputs to `build(_:)` — introduced so that function stays
+    /// at a single, readable parameter.
+    public struct Input {
+        public var config: Config
+        public var lastOutcome: SendOutcome?
+        public var configIsCorrupt: Bool
+        public var lastSaveError: String?
+        public var lastLoadWarning: String?
+        public var sshConfig: SSHConfigParser.Result?
+
+        public init(
+            config: Config,
+            lastOutcome: SendOutcome? = nil,
+            configIsCorrupt: Bool = false,
+            lastSaveError: String? = nil,
+            lastLoadWarning: String? = nil,
+            sshConfig: SSHConfigParser.Result? = nil
+        ) {
+            self.config = config
+            self.lastOutcome = lastOutcome
+            self.configIsCorrupt = configIsCorrupt
+            self.lastSaveError = lastSaveError
+            self.lastLoadWarning = lastLoadWarning
+            self.sshConfig = sshConfig
+        }
+    }
+
+    public static func build(_ input: Input) -> MenuModel {
         MenuModel(
             header: header(
-                lastOutcome: lastOutcome,
-                configIsCorrupt: configIsCorrupt,
-                lastSaveError: lastSaveError,
-                lastLoadWarning: lastLoadWarning
+                lastOutcome: input.lastOutcome,
+                configIsCorrupt: input.configIsCorrupt,
+                lastSaveError: input.lastSaveError,
+                lastLoadWarning: input.lastLoadWarning
             ),
-            targets: config.targets.map {
-                TargetItem(id: $0.id, label: $0.label, isDefault: $0.id == config.defaultTargetID)
+            targets: input.config.targets.map {
+                TargetItem(id: $0.id, label: $0.label, isDefault: $0.id == input.config.defaultTargetID)
             },
-            discoverable: discoverable(config: config, sshConfig: sshConfig),
-            showsIncludeNote: sshConfig?.hasUnsupportedInclude ?? false
+            discoverable: discoverable(config: input.config, sshConfig: input.sshConfig),
+            showsIncludeNote: input.sshConfig?.hasUnsupportedInclude ?? false
         )
     }
 

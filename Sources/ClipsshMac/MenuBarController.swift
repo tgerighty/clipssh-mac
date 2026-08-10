@@ -33,7 +33,6 @@ final class MenuBarController: NSObject {
         successTimer?.invalidate()
     }
 
-
     @objc private func handleClick() {
         let event = NSApp.currentEvent
         let isMenuClick = event?.type == .rightMouseUp

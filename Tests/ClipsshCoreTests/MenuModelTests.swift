@@ -13,14 +13,14 @@ private func build(
     lastLoadWarning: String? = nil,
     sshConfig: SSHConfigParser.Result? = nil
 ) -> MenuModel {
-    MenuModel.build(
+    MenuModel.build(MenuModel.Input(
         config: config,
         lastOutcome: lastOutcome,
         configIsCorrupt: configIsCorrupt,
         lastSaveError: lastSaveError,
         lastLoadWarning: lastLoadWarning,
         sshConfig: sshConfig
-    )
+    ))
 }
 
 @Test func headerIsEmptyBeforeAnySend() {

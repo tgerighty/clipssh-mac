@@ -17,6 +17,6 @@ let package = Package(
         .testTarget(
             name: "ClipsshMacTests",
             dependencies: ["ClipsshMac", "ClipsshCore"]
-        ),
+        )
     ]
 )

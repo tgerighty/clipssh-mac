@@ -74,7 +74,7 @@ public struct Uploader {
             "-o", "StdinNull=no",
             "-o", "ForkAfterAuthentication=no",
             "-o", "RemoteCommand=none",
-            "-o", "SessionType=default",
+            "-o", "SessionType=default"
         ]
         if let port = target.port {
             args += ["-p", String(port)]
@@ -158,7 +158,9 @@ public struct Uploader {
     /// ";", "|", backticks, quotes, "\", "," and any whitespace or control
     /// character.
     private static func isUserOrHostCharacter(_ character: Character) -> Bool {
-        character.isASCII && (character.isLetter || character.isNumber || character == "." || character == "_" || character == "-")
+        character.isASCII
+            && (character.isLetter || character.isNumber
+                || character == "." || character == "_" || character == "-")
     }
 
     /// Parses `literal` as an IPv6 address with `inet_pton`, rather than
