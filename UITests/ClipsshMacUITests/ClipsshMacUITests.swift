@@ -91,8 +91,9 @@ final class ClipsshMacUITests: XCTestCase {
         let window = app.windows["clipssh-mac Targets"]
         XCTAssertTrue(window.waitForExistence(timeout: 5))
 
-        // accessibilityIdentifier does not propagate through `Button { Image }`
-        // on macOS, but accessibilityLabel does — the button surfaces as "Add".
+        // Neither .accessibilityIdentifier nor .accessibilityLabel propagates
+        // through `Button { Image }` on macOS — verified at runtime. The labels
+        // here ("Add"/"Remove") are derived by macOS from the SF Symbol itself.
         let add = window.buttons["Add"].firstMatch
         XCTAssertTrue(add.waitForExistence(timeout: 3))
         add.click()
