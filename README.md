@@ -129,6 +129,14 @@ write fail if a file or symlink already exists at that path, instead of
 following it — `/tmp` is world-writable, so a plain `>` redirect could be
 tricked into overwriting an attacker-readable location.
 
+## Menu bar managers
+
+A menu bar manager such as Bartender, Ice or Hidden Bar can park a hidden item
+off-screen. The app still runs, but you cannot click the icon, so you cannot
+send or see the error state. Either keep clipssh-mac visible in the menu bar,
+or set a global hotkey in `Targets…` — the hotkey works whether or not the icon
+is reachable.
+
 ## Notes and limits
 
 - **The app writes to `/tmp` only.** The remote directory is not

@@ -40,8 +40,14 @@ struct TargetsView: View {
             }
             Divider()
             HStack(spacing: 4) {
+                // Identifiers and labels: an SF Symbol alone gives VoiceOver
+                // nothing to announce and gives automation nothing to match.
                 Button(action: model.add) { Image(systemName: "plus") }
+                    .accessibilityIdentifier("addTarget")
+                    .accessibilityLabel("Add target")
                 Button(action: model.remove) { Image(systemName: "minus") }
+                    .accessibilityIdentifier("removeTarget")
+                    .accessibilityLabel("Remove target")
                     .disabled(model.selected == nil)
                 Spacer()
             }
