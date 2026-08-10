@@ -43,7 +43,12 @@ final class ClipsshMacUITests: XCTestCase {
     private func requireHittableStatusItem() throws {
         XCTAssertTrue(statusItem.waitForExistence(timeout: 5))
         guard statusItem.isHittable else {
-            throw XCTSkip("Status item is not hittable (frame \(statusItem.frame)) — it is most likely hidden by a menu bar manager. Reveal clipssh-mac in the menu bar to run the click-driven tests.")
+            let frame = statusItem.frame
+            throw XCTSkip(
+                "Status item is not hittable (frame \(frame)). It is most "
+                + "likely hidden by a menu bar manager; reveal clipssh-mac "
+                + "in the menu bar to run the click-driven tests."
+            )
         }
     }
 
