@@ -6,6 +6,33 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [0.1.5] - 2026-08-10
+
+### Added
+
+- Real end-to-end UI tests. The suite previously held only an assertion-free
+  discovery probe. It now verifies that the status item appears, that no window
+  opens at launch, that a right-click opens the menu, that a left-click with no
+  target configured opens the Targets window, and that adding a target persists
+  it as the default. Local-only via `make uitest`: GitHub runners have no
+  window server.
+
+### Fixed
+
+- `make uitest` now terminates a running instance and waits for it to exit.
+  XCUITest launches the app itself, so an already-running copy made every test
+  fail on its launch timeout.
+- Removed `.accessibilityIdentifier` and `.accessibilityLabel` from the
+  add/remove buttons. Neither propagates through `Button { Image }` on macOS —
+  verified at runtime — so declaring them only misled readers. macOS derives
+  the labels from the SF Symbol.
+
+### Documentation
+
+- Documented that a menu bar manager (Bartender, Ice, Hidden Bar) can park the
+  status item off-screen, where it cannot be clicked, and that the global
+  hotkey works regardless.
+
 ## [0.1.4] - 2026-08-10
 
 ### Fixed
