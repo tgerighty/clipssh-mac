@@ -40,14 +40,14 @@ struct TargetsView: View {
             }
             Divider()
             HStack(spacing: 4) {
-                // Identifiers and labels: an SF Symbol alone gives VoiceOver
-                // nothing to announce and gives automation nothing to match.
+                // macOS derives the accessibility label for these from the SF
+                // Symbol itself: the plus button surfaces as "Add" and the minus
+                // as "Remove". Verified at runtime by dumping the window's
+                // buttons. .accessibilityIdentifier and .accessibilityLabel do
+                // NOT propagate through `Button { Image }` here, so declaring
+                // them would only mislead — the UI tests query the real labels.
                 Button(action: model.add) { Image(systemName: "plus") }
-                    .accessibilityIdentifier("addTarget")
-                    .accessibilityLabel("Add target")
                 Button(action: model.remove) { Image(systemName: "minus") }
-                    .accessibilityIdentifier("removeTarget")
-                    .accessibilityLabel("Remove target")
                     .disabled(model.selected == nil)
                 Spacer()
             }

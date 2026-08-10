@@ -41,6 +41,10 @@ clean:
 # Requires: xcodegen installed, and Accessibility permission on first run.
 # Depends on `app` (not `install`) so this never touches /Applications.
 uitest: app
+	# XCUITest launches the app itself. A copy already running (from `open`,
+	# or left running after a previous session) makes launch() fail with
+	# "does not have a process ID", and every test then burns its timeout.
+	-@pkill -f 'clipssh-mac.app/Contents/MacOS/ClipsshMac' 2>/dev/null || true
 	cd UITests && xcodegen generate
 	xcodebuild test \
 		-project UITests/ClipsshMacUITests.xcodeproj \

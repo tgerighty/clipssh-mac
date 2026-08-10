@@ -77,7 +77,7 @@ final class ClipsshMacUITests: XCTestCase {
         // The scratch config has no targets, so a send has nowhere to go. The
         // app must open the Targets window rather than report an error the
         // user cannot act on.
-        XCTAssertTrue(statusItem.waitForExistence(timeout: 5))
+        try requireHittableStatusItem()
         statusItem.click()
 
         XCTAssertTrue(app.windows["clipssh-mac Targets"].waitForExistence(timeout: 5))
@@ -112,7 +112,17 @@ final class ClipsshMacUITests: XCTestCase {
         }
         let targets = (parsed?["targets"] as? [[String: Any]]) ?? []
         XCTAssertEqual(targets.count, 1, "adding a target should write exactly one target")
-        XCTAssertNotNil(parsed?["defaultTargetID"], "the first target should become the default")
+
+        // Assert the default POINTS AT the target that was added. A non-nil
+        // defaultTargetID could otherwise reference a target that no longer
+        // exists, which would leave the app with no usable default.
+        let addedID = targets.first?["id"] as? String
+        XCTAssertNotNil(addedID, "the persisted target should carry an id")
+        XCTAssertEqual(
+            parsed?["defaultTargetID"] as? String, addedID,
+            "the first target added should become the default"
+        )
     }
+
 
 }
