@@ -129,6 +129,9 @@ private final class StubRunner: ProcessRunning, @unchecked Sendable {
 
     let concurrentAdds = 100
     let done = DispatchGroup()
+    // `i` is a plain loop counter used only to build a unique hostname below;
+    // a longer name would add nothing. Judged as noise for this codebase.
+    // swiftlint:disable:next identifier_name
     for i in 0..<concurrentAdds {
         done.enter()
         DispatchQueue.global().async {

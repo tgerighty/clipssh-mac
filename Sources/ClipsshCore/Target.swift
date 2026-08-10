@@ -21,7 +21,12 @@ public struct Config: Codable, Equatable, Sendable {
     public var hotkey: String?
     public var targets: [Target]
 
-    public init(version: Int = Config.currentVersion, defaultTargetID: UUID? = nil, hotkey: String? = nil, targets: [Target] = []) {
+    public init(
+        version: Int = Config.currentVersion,
+        defaultTargetID: UUID? = nil,
+        hotkey: String? = nil,
+        targets: [Target] = []
+    ) {
         self.version = version
         self.defaultTargetID = defaultTargetID
         self.hotkey = hotkey

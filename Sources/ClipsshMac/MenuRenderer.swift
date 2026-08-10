@@ -18,14 +18,14 @@ final class MenuRenderer: NSObject {
     deinit {}
 
     func render() -> NSMenu {
-        let model = MenuModel.build(
+        let model = MenuModel.build(MenuModel.Input(
             config: coordinator.config,
             lastOutcome: coordinator.lastOutcome,
             configIsCorrupt: coordinator.configIsCorrupt,
             lastSaveError: coordinator.lastSaveError,
             lastLoadWarning: coordinator.lastLoadWarning,
             sshConfig: Self.readSSHConfig()
-        )
+        ))
 
         let menu = NSMenu()
         addHeader(model.header, to: menu)
@@ -33,7 +33,9 @@ final class MenuRenderer: NSObject {
         addDiscovery(model, to: menu)
         menu.addItem(withTitle: "Targets…", action: #selector(openTargets), keyEquivalent: ",").target = self
         menu.addItem(.separator())
-        let launch = menu.addItem(withTitle: "Launch at login", action: #selector(toggleLaunchAtLogin), keyEquivalent: "")
+        let launch = menu.addItem(
+            withTitle: "Launch at login", action: #selector(toggleLaunchAtLogin), keyEquivalent: ""
+        )
         launch.target = self
         launch.state = LaunchAtLogin.isEnabled ? .on : .off
         menu.addItem(.separator())

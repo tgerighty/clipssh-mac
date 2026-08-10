@@ -96,7 +96,10 @@ import ClipsshCore
     controller.show()
     defer { controller.window?.close() }
 
-    #expect(controller.model?.hotkeyMessage == "Saved hotkey could not be registered — it may be in use by another app.")
+    #expect(
+        controller.model?.hotkeyMessage
+            == "Saved hotkey could not be registered — it may be in use by another app."
+    )
     // The persisted hotkey is not silently deleted just because it failed to
     // register.
     #expect(controller.model?.hotkey == "cmd+shift+key1")

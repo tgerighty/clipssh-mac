@@ -179,7 +179,7 @@ private let target = Target(label: "box", destination: "box.example.com")
     let errors: [UploadError] = [
         .noImageInClipboard, .noTargetConfigured, .keyUnavailable,
         .hostKeyNotTrusted, .timedOut("box"), .remoteWriteFailed("box"), .other("x"),
-        .invalidDestination,
+        .invalidDestination
     ]
     #expect(errors.allSatisfy { !$0.message.isEmpty })
 }

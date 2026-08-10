@@ -44,23 +44,31 @@ func makeTempDir(sourceLocation: SourceLocation = #_sourceLocation) -> URL {
     return url
 }
 
+private struct MadeCoordinator {
+    let coordinator: SendCoordinator
+    let pasteboard: FakePasteboard
+    let runner: StubRunner
+}
+
 private func makeCoordinator(
     directory: URL,
     pasteboard: FakePasteboard = FakePasteboard(),
     runner: StubRunner = StubRunner()
-) -> (SendCoordinator, FakePasteboard, StubRunner) {
+) -> MadeCoordinator {
     let coordinator = SendCoordinator(
         store: TargetStore(directory: directory),
         pasteboard: pasteboard,
         uploader: Uploader(runner: runner)
     )
-    return (coordinator, pasteboard, runner)
+    return MadeCoordinator(coordinator: coordinator, pasteboard: pasteboard, runner: runner)
 }
 
 @Test func sendFailsWhenClipboardHasNoImage() {
     let directory = makeTempDir()
     defer { try? FileManager.default.removeItem(at: directory) }
-    let (coordinator, _, runner) = makeCoordinator(directory: directory, pasteboard: FakePasteboard(image: nil))
+    let made = makeCoordinator(directory: directory, pasteboard: FakePasteboard(image: nil))
+    let coordinator = made.coordinator
+    let runner = made.runner
     coordinator.addTarget(destination: "box.example.com")
 
     #expect(coordinator.performSend() == .failed(.noImageInClipboard))
@@ -71,7 +79,9 @@ private func makeCoordinator(
 @Test func sendFailsWhenNoTargetIsConfigured() {
     let directory = makeTempDir()
     defer { try? FileManager.default.removeItem(at: directory) }
-    let (coordinator, _, runner) = makeCoordinator(directory: directory)
+    let made = makeCoordinator(directory: directory)
+    let coordinator = made.coordinator
+    let runner = made.runner
 
     #expect(coordinator.performSend() == .failed(.noTargetConfigured))
     #expect(runner.callCount == 0)
@@ -80,7 +90,9 @@ private func makeCoordinator(
 @Test func successfulSendReturnsThePathAndCopiesIt() {
     let directory = makeTempDir()
     defer { try? FileManager.default.removeItem(at: directory) }
-    let (coordinator, pasteboard, _) = makeCoordinator(directory: directory)
+    let made = makeCoordinator(directory: directory)
+    let coordinator = made.coordinator
+    let pasteboard = made.pasteboard
     coordinator.addTarget(destination: "box.example.com")
 
     guard case .sent(let path) = coordinator.performSend() else {
@@ -94,7 +106,7 @@ private func makeCoordinator(
 @Test func successfulSendIsRecordedAsTheLastOutcome() {
     let directory = makeTempDir()
     defer { try? FileManager.default.removeItem(at: directory) }
-    let (coordinator, _, _) = makeCoordinator(directory: directory)
+    let coordinator = makeCoordinator(directory: directory).coordinator
     coordinator.addTarget(destination: "box.example.com")
 
     let outcome = coordinator.performSend()
@@ -106,7 +118,9 @@ private func makeCoordinator(
     defer { try? FileManager.default.removeItem(at: directory) }
     let runner = StubRunner()
     runner.result = ProcessResult(exitCode: 255, stderr: "Host key verification failed.")
-    let (coordinator, pasteboard, _) = makeCoordinator(directory: directory, runner: runner)
+    let made = makeCoordinator(directory: directory, runner: runner)
+    let coordinator = made.coordinator
+    let pasteboard = made.pasteboard
     coordinator.addTarget(destination: "box.example.com")
 
     #expect(coordinator.performSend() == .failed(.hostKeyNotTrusted))
@@ -117,7 +131,9 @@ private func makeCoordinator(
 @Test func copyLastPathRewritesTheSuccessfulPath() {
     let directory = makeTempDir()
     defer { try? FileManager.default.removeItem(at: directory) }
-    let (coordinator, pasteboard, _) = makeCoordinator(directory: directory)
+    let made = makeCoordinator(directory: directory)
+    let coordinator = made.coordinator
+    let pasteboard = made.pasteboard
     coordinator.addTarget(destination: "box.example.com")
     guard case .sent(let path) = coordinator.performSend() else {
         Issue.record("expected a successful send")
@@ -132,7 +148,9 @@ private func makeCoordinator(
 @Test func copyLastPathDoesNothingAfterAFailure() {
     let directory = makeTempDir()
     defer { try? FileManager.default.removeItem(at: directory) }
-    let (coordinator, pasteboard, _) = makeCoordinator(directory: directory, pasteboard: FakePasteboard(image: nil))
+    let made = makeCoordinator(directory: directory, pasteboard: FakePasteboard(image: nil))
+    let coordinator = made.coordinator
+    let pasteboard = made.pasteboard
     coordinator.addTarget(destination: "box.example.com")
     _ = coordinator.performSend()
 
@@ -144,7 +162,7 @@ private func makeCoordinator(
 @Test func addTargetMakesTheFirstTargetTheDefault() {
     let directory = makeTempDir()
     defer { try? FileManager.default.removeItem(at: directory) }
-    let (coordinator, _, _) = makeCoordinator(directory: directory)
+    let coordinator = makeCoordinator(directory: directory).coordinator
     let first = coordinator.addTarget(destination: "one.example.com")
     let second = coordinator.addTarget(destination: "two.example.com")
 
@@ -155,7 +173,7 @@ private func makeCoordinator(
 @Test func setDefaultChangesTheDefaultTarget() {
     let directory = makeTempDir()
     defer { try? FileManager.default.removeItem(at: directory) }
-    let (coordinator, _, _) = makeCoordinator(directory: directory)
+    let coordinator = makeCoordinator(directory: directory).coordinator
     _ = coordinator.addTarget(destination: "one.example.com")
     let second = coordinator.addTarget(destination: "two.example.com")
 
@@ -167,7 +185,7 @@ private func makeCoordinator(
 @Test func removingTheDefaultTargetPromotesAnother() {
     let directory = makeTempDir()
     defer { try? FileManager.default.removeItem(at: directory) }
-    let (coordinator, _, _) = makeCoordinator(directory: directory)
+    let coordinator = makeCoordinator(directory: directory).coordinator
     let first = coordinator.addTarget(destination: "one.example.com")
     let second = coordinator.addTarget(destination: "two.example.com")
 
@@ -180,7 +198,7 @@ private func makeCoordinator(
 @Test func removingTheLastTargetLeavesNoDefault() {
     let directory = makeTempDir()
     defer { try? FileManager.default.removeItem(at: directory) }
-    let (coordinator, _, _) = makeCoordinator(directory: directory)
+    let coordinator = makeCoordinator(directory: directory).coordinator
     let only = coordinator.addTarget(destination: "one.example.com")
 
     coordinator.removeTarget(only)
@@ -192,7 +210,7 @@ private func makeCoordinator(
 @Test func updateTargetPersistsTheEdit() {
     let directory = makeTempDir()
     defer { try? FileManager.default.removeItem(at: directory) }
-    let (coordinator, _, _) = makeCoordinator(directory: directory)
+    let coordinator = makeCoordinator(directory: directory).coordinator
     var target = coordinator.addTarget(destination: "one.example.com")
     target.label = "renamed"
     target.port = 2222
@@ -206,11 +224,11 @@ private func makeCoordinator(
 @Test func changesSurviveAReload() {
     let directory = makeTempDir()
     defer { try? FileManager.default.removeItem(at: directory) }
-    let (coordinator, _, _) = makeCoordinator(directory: directory)
+    let coordinator = makeCoordinator(directory: directory).coordinator
     let target = coordinator.addTarget(destination: "one.example.com")
     coordinator.setHotkey("cmd+shift+2")
 
-    let (reopened, _, _) = makeCoordinator(directory: directory)
+    let reopened = makeCoordinator(directory: directory).coordinator
 
     #expect(reopened.config.targets.map(\.id) == [target.id])
     #expect(reopened.config.hotkey == "cmd+shift+2")
@@ -222,13 +240,13 @@ private func makeCoordinator(
     try Data("box=admin@box.example.com".utf8)
         .write(to: directory.appendingPathComponent("aliases"))
 
-    let (first, _, _) = makeCoordinator(directory: directory)
+    let first = makeCoordinator(directory: directory).coordinator
     #expect(first.config.targets.map(\.label) == ["box"])
 
     first.removeTarget(first.config.targets[0])
 
     // Reopening must not resurrect a target the user deleted.
-    let (second, _, _) = makeCoordinator(directory: directory)
+    let second = makeCoordinator(directory: directory).coordinator
     #expect(second.config.targets.isEmpty)
 }
 
@@ -238,7 +256,7 @@ private func makeCoordinator(
     let junk = Data("{ not json".utf8)
     try junk.write(to: directory.appendingPathComponent("clipssh-mac.json"))
 
-    let (coordinator, _, _) = makeCoordinator(directory: directory)
+    let coordinator = makeCoordinator(directory: directory).coordinator
 
     #expect(coordinator.configIsCorrupt)
     #expect(coordinator.config.targets.isEmpty)
@@ -248,7 +266,7 @@ private func makeCoordinator(
 @Test func testConnectionReportsSuccess() {
     let directory = makeTempDir()
     defer { try? FileManager.default.removeItem(at: directory) }
-    let (coordinator, _, _) = makeCoordinator(directory: directory)
+    let coordinator = makeCoordinator(directory: directory).coordinator
     let target = coordinator.addTarget(destination: "box.example.com", label: "box")
 
     #expect(coordinator.testConnection(target) == "Connected to box")
@@ -259,7 +277,7 @@ private func makeCoordinator(
     defer { try? FileManager.default.removeItem(at: directory) }
     let runner = StubRunner()
     runner.result = ProcessResult(exitCode: 255, stderr: "Permission denied (publickey).")
-    let (coordinator, _, _) = makeCoordinator(directory: directory, runner: runner)
+    let coordinator = makeCoordinator(directory: directory, runner: runner).coordinator
     let target = coordinator.addTarget(destination: "box.example.com", label: "box")
 
     #expect(coordinator.testConnection(target) == UploadError.keyUnavailable.message)
@@ -271,7 +289,7 @@ private func makeCoordinator(
     let junk = Data("{ not json".utf8)
     try junk.write(to: directory.appendingPathComponent("clipssh-mac.json"))
 
-    let (coordinator, _, _) = makeCoordinator(directory: directory)
+    let coordinator = makeCoordinator(directory: directory).coordinator
     #expect(coordinator.configIsCorrupt)
 
     coordinator.addTarget(destination: "box.example.com")
@@ -295,7 +313,7 @@ private func makeCoordinator(
     let junk = Data("{ still not json".utf8)
     try junk.write(to: directory.appendingPathComponent("clipssh-mac.json"))
 
-    let (coordinator, _, _) = makeCoordinator(directory: directory)
+    let coordinator = makeCoordinator(directory: directory).coordinator
     #expect(coordinator.configIsCorrupt)
 
     coordinator.addTarget(destination: "box.example.com")
@@ -314,7 +332,7 @@ private func makeCoordinator(
     try FileManager.default.setAttributes([.posixPermissions: 0o000], ofItemAtPath: configURL.path)
     defer { try? FileManager.default.setAttributes([.posixPermissions: 0o600], ofItemAtPath: configURL.path) }
 
-    let (coordinator, _, _) = makeCoordinator(directory: directory)
+    let coordinator = makeCoordinator(directory: directory).coordinator
     #expect(coordinator.configIsCorrupt)
 
     coordinator.addTarget(destination: "box.example.com")
@@ -335,7 +353,7 @@ private func makeCoordinator(
     let junk = Data("{ still not json".utf8)
     try junk.write(to: directory.appendingPathComponent("clipssh-mac.json"))
 
-    let (coordinator, _, _) = makeCoordinator(directory: directory)
+    let coordinator = makeCoordinator(directory: directory).coordinator
     #expect(coordinator.configIsCorrupt)
 
     coordinator.addTarget(destination: "box.example.com")
@@ -360,7 +378,7 @@ private func makeCoordinator(
     // fails FileManager's createDirectory with ENOTDIR — a reliable way to
     // force a save failure without depending on filesystem permissions.
     let badDirectory = URL(fileURLWithPath: "/dev/null/clipssh-cannot-create")
-    let (coordinator, _, _) = makeCoordinator(directory: badDirectory)
+    let coordinator = makeCoordinator(directory: badDirectory).coordinator
 
     coordinator.addTarget(destination: "box.example.com")
 
@@ -370,7 +388,7 @@ private func makeCoordinator(
 @Test func successfulSaveLeavesNoSaveError() {
     let directory = makeTempDir()
     defer { try? FileManager.default.removeItem(at: directory) }
-    let (coordinator, _, _) = makeCoordinator(directory: directory)
+    let coordinator = makeCoordinator(directory: directory).coordinator
 
     coordinator.addTarget(destination: "box.example.com")
 
@@ -393,7 +411,9 @@ private func makeCoordinator(
     chflags(store.configURL.path, UInt32(UF_IMMUTABLE))
     defer { chflags(store.configURL.path, 0) }
 
-    let coordinator = SendCoordinator(store: store, pasteboard: FakePasteboard(), uploader: Uploader(runner: StubRunner()))
+    let coordinator = SendCoordinator(
+        store: store, pasteboard: FakePasteboard(), uploader: Uploader(runner: StubRunner())
+    )
 
     #expect(coordinator.lastLoadWarning != nil)
 }
@@ -408,7 +428,9 @@ private func makeCoordinator(
     let store = TargetStore(directory: directory)
     try store.save(Config.empty)
 
-    let coordinator = SendCoordinator(store: store, pasteboard: FakePasteboard(), uploader: Uploader(runner: StubRunner()))
+    let coordinator = SendCoordinator(
+        store: store, pasteboard: FakePasteboard(), uploader: Uploader(runner: StubRunner())
+    )
 
     #expect(coordinator.lastLoadWarning == nil)
 }

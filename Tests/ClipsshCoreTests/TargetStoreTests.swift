@@ -154,7 +154,10 @@ private func makeTempDir() throws -> URL {
     let dir = try makeTempDir()
     defer { try? FileManager.default.removeItem(at: dir) }
     let store = TargetStore(directory: dir)
-    let future = Config(version: Config.currentVersion + 1, targets: [Target(label: "box", destination: "box.example.com")])
+    let future = Config(
+        version: Config.currentVersion + 1,
+        targets: [Target(label: "box", destination: "box.example.com")]
+    )
     let data = try JSONEncoder().encode(future)
     try data.write(to: store.configURL)
 

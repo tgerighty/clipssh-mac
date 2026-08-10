@@ -222,7 +222,9 @@ public final class SendCoordinator: @unchecked Sendable {
 
         let maxAttempts = 1000
         for suffix in 0..<maxAttempts {
-            let backupPath = suffix == 0 ? store.configURL.path + ".corrupt" : store.configURL.path + ".corrupt.\(suffix)"
+            let backupPath = suffix == 0
+                ? store.configURL.path + ".corrupt"
+                : store.configURL.path + ".corrupt.\(suffix)"
             do {
                 try fileManager.moveItem(at: store.configURL, to: URL(fileURLWithPath: backupPath))
                 return true

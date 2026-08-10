@@ -47,7 +47,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             NSLog("clipssh-mac: failed to register saved hotkey \(savedHotkey)")
             // The hotkey stays in the config (never silently deleted) but the
             // Targets window must not show it as active when it is not.
-            targetsWindow.launchHotkeyFailureMessage = "Saved hotkey could not be registered — it may be in use by another app."
+            targetsWindow.launchHotkeyFailureMessage =
+                "Saved hotkey could not be registered — it may be in use by another app."
         }
         targetsWindow.onHotkeyChange = { [weak hotkeys] spec in hotkeys?.register(spec) ?? false }
 
