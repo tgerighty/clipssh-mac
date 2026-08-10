@@ -6,6 +6,17 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [0.1.3] - 2026-08-10
+
+### Changed
+
+- Resolved SwiftLint findings surfaced by the code-quality gate: split
+  `ProcessRunner.run` into focused helpers (no behaviour change; the stdin,
+  SIGPIPE, bounded-drain and process-group-kill invariants are preserved and
+  were independently reviewed), split three oversized files by responsibility,
+  and replaced `MenuModel.build`'s parameter list with an input struct. No
+  functional change.
+
 ### Fixed
 
 - IPv6 destinations now actually connect. The bracketed form
