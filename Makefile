@@ -1,12 +1,18 @@
 CONFIG ?= release
 APP := clipssh-mac.app
 BIN := ClipsshMac
-BINDIR = $(shell swift build -c $(CONFIG) --show-bin-path)
+# Extra flags for swift build. Homebrew runs the install inside sandbox-exec,
+# and SwiftPM then tries to sandbox its own manifest evaluation inside that.
+# macOS refuses the nested sandbox ("sandbox_apply: Operation not permitted"),
+# so the manifest never compiles. The formula passes --disable-sandbox here.
+# Local builds keep the sandbox by leaving this empty.
+SWIFTFLAGS ?=
+BINDIR = $(shell swift build -c $(CONFIG) $(SWIFTFLAGS) --show-bin-path)
 
 .PHONY: build test app install clean release uitest
 
 build:
-	swift build -c $(CONFIG)
+	swift build -c $(CONFIG) $(SWIFTFLAGS)
 
 test:
 	swift test
