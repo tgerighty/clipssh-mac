@@ -6,6 +6,17 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [0.1.4] - 2026-08-10
+
+### Fixed
+
+- `brew install` failed with `sandbox-exec: sandbox_apply: Operation not
+  permitted` and an invalid manifest. Homebrew runs the install inside
+  `sandbox-exec`, and Swift Package Manager then tried to sandbox its own
+  manifest evaluation inside that; macOS refuses the nested sandbox. The
+  Makefile now accepts a `SWIFTFLAGS` passthrough so the formula can pass
+  `--disable-sandbox`. Local builds keep the sandbox.
+
 ## [0.1.3] - 2026-08-10
 
 ### Changed
