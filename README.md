@@ -134,7 +134,12 @@ tricked into overwriting an attacker-readable location.
 
 The app shrinks an image that is too large to be useful at the far end. It
 caps the long edge at 1568 pixels and flattens 16-bit colour to 8-bit. If the
-result is still more than 3.5 MB, it halves the image again until it fits.
+result is still more than 3.5 MB, it halves the image and tries again, down to
+a floor of 196 pixels on the long edge.
+
+The floor is a loop guard, not a real limit. A 196-pixel image holds well under
+3.5 MB whatever it contains, so the budget is always reached first and the
+floor never decides the outcome.
 
 PNG data taken straight from the pasteboard passes through byte for byte when
 it is already 8-bit, no more than 1568 pixels on its long edge, and no more
