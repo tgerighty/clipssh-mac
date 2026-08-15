@@ -108,8 +108,9 @@ writes to it.
 
 ## How it works
 
-The app reads PNG data from the system pasteboard (`NSPasteboard`) and pipes
-it to `/usr/bin/ssh`:
+The app reads PNG data from the system pasteboard (`NSPasteboard`), shrinks the
+image if it is too large (see [Image shrinking](#image-shrinking) below), and
+pipes it to `/usr/bin/ssh`:
 
 ```sh
 /bin/sh -c 'umask 077; set -C; cat > "$1"' sh '/tmp/clipboard-<epoch-seconds>-<4 hex chars>.png'
@@ -128,6 +129,57 @@ readable by other users on a shared host. `set -C` (noclobber) makes the
 write fail if a file or symlink already exists at that path, instead of
 following it — `/tmp` is world-writable, so a plain `>` redirect could be
 tricked into overwriting an attacker-readable location.
+
+## Image shrinking
+
+The app shrinks an image that is too large to be useful at the far end. It
+caps the long edge at 1568 pixels and flattens 16-bit colour to 8-bit. If the
+result is still more than 3.5 MB, it halves the image and tries again, down to
+a floor of 196 pixels on the long edge.
+
+The floor is a loop guard, not a size limit. As long as the redraws succeed, a
+196-pixel image holds well under 3.5 MB whatever it contains, so the budget is
+always reached first and the floor never decides the result.
+
+The floor decides one case only. If an image needs converting and every redraw
+fails, down to and including the 196-pixel attempt, the app gives up there. It
+sends nothing and reports no image on the clipboard. It never falls back to the
+original: that would upload the oversized file this step exists to stop, and
+call it a success — the exact failure that prompted the feature.
+
+PNG data taken straight from the pasteboard passes through byte for byte when
+it is already 8-bit, no more than 1568 pixels on its long edge, and no more
+than 3.5 MB. An ordinary screenshot meets all three, so the app does not
+re-encode it.
+
+Two cases never reach that fast path. A pasteboard that offers only TIFF is
+converted to PNG before the shrinker sees it, so those bytes are always new.
+And an image that misses any one of the three conditions is redrawn even if the
+far end could have read it — a 2000-pixel 1 MB screenshot is still capped,
+because pixels above 1568 buy no detail.
+
+Both numbers are the app's own limits, not a protocol requirement. The app
+uploads to whatever SSH host you configure and knows nothing about what reads
+the file there, so it picks one conservative pair and applies it always.
+
+The pair comes from the case that prompted the feature. Claude Code 2.1.233
+caps an image at 5 MB of base64, a figure its own binary carries as
+`maxBase64Size: 5242880`; base64 is 4/3 the size of the bytes it encodes, so
+that is roughly 3.75 MB of PNG, and 3.5 MB sits under it. The 1568-pixel cap
+matches the long edge Anthropic's models commonly downscale to, so pixels above
+it cost upload time and usually add no detail.
+
+Other readers and other models allow more, and some allow a larger long edge.
+A bigger image is not rejected everywhere — it is simply more than this app
+sends.
+
+Without this step the app sent the pasteboard image as-is. A 24-megapixel
+16-bit photo became a 69 MB PNG that no reader on the far end could accept.
+That same image now sends as 2.3 MB.
+
+The app does not tell you when it shrinks an image. Reporting it would mean
+widening the pasteboard protocol and the menu model, which is a lot of moving
+parts for a step that changes nothing you would act on.
 
 ## Menu bar managers
 
@@ -158,13 +210,13 @@ is reachable.
 
 ## Testing
 
-The core logic (`ClipsshCore`) has 129 unit tests, and the app layer
-(`ClipsshMac`) has 24 more — 153 in total, all run with `swift test`. They
+The core logic (`ClipsshCore`) has 138 unit tests, and the app layer
+(`ClipsshMac`) has 33 more — 171 in total, all run with `swift test`. They
 cover the SSH config parser, the target store, the uploader's error mapping
 and destination validation, the remote command format, target-mutation
-concurrency, and the Targets window's model. No test touches a real network
-connection or a real pasteboard. CI runs `swift build`, `swift test`, and
-`make app` on pushes to `main` and on pull requests.
+concurrency, the image shrinker, and the Targets window's model. No test
+touches a real network connection or a real pasteboard. CI runs `swift build`,
+`swift test`, and `make app` on pushes to `main` and on pull requests.
 
 `UITests/` holds the start of an XCUITest end-to-end suite, but there is
 nothing to run yet: it contains a single discovery probe that prints the
@@ -172,13 +224,13 @@ accessibility tree and asserts nothing. It has never run successfully — it
 needs Accessibility permission granted to the test runner and a logged-in GUI
 session, neither of which CI provides.
 
-CI does not cover everything, either: 10 of the 153 tests construct a real
+CI does not cover everything, either: 10 of the 171 tests construct a real
 `NSStatusItem` or `NSWindow`, which need the same window server the XCUITest
 suite needs and GitHub's macOS runners do not have. They are gated with
 `.enabled(if: hasWindowServer)`, which checks for the `CI` environment
 variable GitHub Actions always sets, and show up as **skipped**, not failed,
 in the CI log. Plain `swift test` on a developer machine has a real window
-server and runs all 153.
+server and runs all 171.
 
 ## Relation to clipssh
 
