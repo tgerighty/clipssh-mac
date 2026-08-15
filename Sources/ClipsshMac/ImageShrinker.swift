@@ -42,12 +42,18 @@ enum ImageShrinker {
         // image at its current size while still flattening it to 8-bit.
         var longEdge = min(longEdgeCap, max(width, height))
         while true {
-            guard let candidate = redraw(source, width: width, height: height, longEdge: longEdge)
-            else { return data }
+            let candidate = redraw(source, width: width, height: height, longEdge: longEdge)
 
-            if candidate.count <= byteBudget || longEdge <= minimumLongEdge {
+            if let candidate, candidate.count <= byteBudget || longEdge <= minimumLongEdge {
                 return candidate
             }
+            // A nil candidate means the allocation, the graphics context or the
+            // encoder gave up, and all three are size-dependent, so a smaller
+            // redraw may still succeed. Bailing straight to `data` here would
+            // upload the oversized original — the very thing this type exists
+            // to prevent. Only the floor gives up, and then there is nothing
+            // better left to send.
+            if longEdge <= minimumLongEdge { return data }
             longEdge /= 2
         }
     }

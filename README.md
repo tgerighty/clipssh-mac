@@ -136,9 +136,16 @@ The app shrinks an image that is too large to be useful at the far end. It
 caps the long edge at 1568 pixels and flattens 16-bit colour to 8-bit. If the
 result is still more than 3.5 MB, it halves the image again until it fits.
 
-An image that is already 8-bit, no more than 1568 pixels on its long edge, and
-no more than 3.5 MB passes through untouched. The app does not re-encode it.
-An ordinary screenshot therefore arrives exactly as the pasteboard held it.
+PNG data taken straight from the pasteboard passes through byte for byte when
+it is already 8-bit, no more than 1568 pixels on its long edge, and no more
+than 3.5 MB. An ordinary screenshot meets all three, so the app does not
+re-encode it.
+
+Two cases never reach that fast path. A pasteboard that offers only TIFF is
+converted to PNG before the shrinker sees it, so those bytes are always new.
+And an image that misses any one of the three conditions is redrawn even if the
+far end could have read it — a 2000-pixel 1 MB screenshot is still capped,
+because pixels above 1568 buy no detail.
 
 The two limits come from what reads the image at the other end. Anthropic's
 API accepts 5 MB of base64 per image, and base64 is 4/3 the size of the bytes
@@ -150,9 +157,9 @@ Without this step the app sent the pasteboard image as-is. A 24-megapixel
 16-bit photo became a 69 MB PNG that no reader on the far end could accept.
 That same image now sends as 2.3 MB.
 
-The app does not tell you when it shrinks an image. The step only starts on an
-image the far end could not read at all, so the alternative is a failure, not a
-better picture.
+The app does not tell you when it shrinks an image. Reporting it would mean
+widening the pasteboard protocol and the menu model, which is a lot of moving
+parts for a step that changes nothing you would act on.
 
 ## Menu bar managers
 

@@ -10,8 +10,11 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 - The app now shrinks an oversized clipboard image before it sends it. It caps
   the long edge at 1568 pixels and flattens 16-bit colour to 8-bit, then halves
-  the image again if the result still exceeds 3.5 MB. A screenshot that is
-  already small enough passes through untouched, byte for byte.
+  the image again if the result still exceeds 3.5 MB. PNG data taken straight
+  from the pasteboard passes through byte for byte when it is already 8-bit,
+  within the cap and within the budget, which an ordinary screenshot is.
+  TIFF-only pasteboard data is converted to PNG first, so it is always
+  re-encoded.
 
   Before this, the app sent the pasteboard image as-is. A 24-megapixel 16-bit
   photo therefore arrived as a 69 MB PNG, which a reader on the far end cannot
