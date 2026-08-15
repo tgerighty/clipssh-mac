@@ -58,7 +58,10 @@ enum ImageShrinker {
             // redraw may still succeed. Only the floor gives up for good, and
             // then the send fails rather than falling back to the original.
             if longEdge <= minimumLongEdge { return nil }
-            longEdge /= 2
+            // Clamped, because halving a start below 1568 can undershoot the
+            // floor — 300 would go to 150. From 1568 the sequence lands on 196
+            // exactly, so this only matters for a small source.
+            longEdge = max(minimumLongEdge, longEdge / 2)
         }
     }
 
