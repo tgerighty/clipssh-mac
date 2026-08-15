@@ -8,12 +8,13 @@ final class ClipboardReader: PasteboardReading {
         onMain {
             let pasteboard = NSPasteboard.general
             if let png = pasteboard.data(forType: .png) {
-                return png
+                return ImageShrinker.shrink(png)
             }
             // A screenshot is often offered as TIFF only, so convert it.
             guard let tiff = pasteboard.data(forType: .tiff),
-                  let bitmap = NSBitmapImageRep(data: tiff) else { return nil }
-            return bitmap.representation(using: .png, properties: [:])
+                  let bitmap = NSBitmapImageRep(data: tiff),
+                  let png = bitmap.representation(using: .png, properties: [:]) else { return nil }
+            return ImageShrinker.shrink(png)
         }
     }
 
