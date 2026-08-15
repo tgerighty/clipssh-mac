@@ -137,14 +137,15 @@ caps the long edge at 1568 pixels and flattens 16-bit colour to 8-bit. If the
 result is still more than 3.5 MB, it halves the image and tries again, down to
 a floor of 196 pixels on the long edge.
 
-The floor is a loop guard, not a real limit. A 196-pixel image holds well under
-3.5 MB whatever it contains, so the budget is always reached first and the
-floor never decides the outcome.
+The floor is a loop guard, not a size limit. As long as the redraws succeed, a
+196-pixel image holds well under 3.5 MB whatever it contains, so the budget is
+always reached first and the floor never decides the result.
 
-If an image needs converting and every redraw fails, the app sends nothing and
-reports no image on the clipboard. It never falls back to the original. That
-would upload the oversized file this step exists to stop, and call it a
-success — the exact failure that prompted the feature.
+The floor decides one case only. If an image needs converting and every redraw
+fails, down to and including the 196-pixel attempt, the app gives up there. It
+sends nothing and reports no image on the clipboard. It never falls back to the
+original: that would upload the oversized file this step exists to stop, and
+call it a success — the exact failure that prompted the feature.
 
 PNG data taken straight from the pasteboard passes through byte for byte when
 it is already 8-bit, no more than 1568 pixels on its long edge, and no more
