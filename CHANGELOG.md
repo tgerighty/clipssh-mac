@@ -19,12 +19,14 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   TIFF-only pasteboard data is converted to PNG first, so it is always
   re-encoded.
 
-  Before this, the app sent the pasteboard image as-is. A 24-megapixel 16-bit
-  photo therefore arrived as a 69 MB PNG, which a reader on the far end cannot
-  use: Anthropic's API accepts 5 MB of base64, which is only ~3.75 MB of actual
-  bytes, and it scales any image down to 1568 pixels before the model sees it.
-  Pixels above that cap cost upload time and add no detail. The same 69 MB file
-  now sends as 2.3 MB.
+  Both numbers are the app's own limits, not a protocol requirement: it uploads
+  to any SSH host and cannot know what reads the file there. They come from the
+  case that prompted the feature. Before this, the app sent the pasteboard image
+  as-is, so a 24-megapixel 16-bit photo arrived as a 69 MB PNG that the reader
+  on the far end could not use — Claude Code caps an image at 5 MB of base64,
+  about 3.75 MB of actual bytes, and models commonly downscale to a 1568-pixel
+  long edge, so pixels above that cost upload time and usually add no detail.
+  Other readers allow more. The same 69 MB file now sends as 2.3 MB.
 
 ## [0.1.5] - 2026-08-10
 

@@ -158,11 +158,20 @@ And an image that misses any one of the three conditions is redrawn even if the
 far end could have read it — a 2000-pixel 1 MB screenshot is still capped,
 because pixels above 1568 buy no detail.
 
-The two limits come from what reads the image at the other end. Anthropic's
-API accepts 5 MB of base64 per image, and base64 is 4/3 the size of the bytes
-it encodes, so the true ceiling is about 3.75 MB of PNG. The same API scales
-any image down to 1568 pixels on the long edge before the model sees it, so
-more pixels than that cost upload time and add no detail.
+Both numbers are the app's own limits, not a protocol requirement. The app
+uploads to whatever SSH host you configure and knows nothing about what reads
+the file there, so it picks one conservative pair and applies it always.
+
+The pair comes from the case that prompted the feature. Claude Code 2.1.233
+caps an image at 5 MB of base64, a figure its own binary carries as
+`maxBase64Size: 5242880`; base64 is 4/3 the size of the bytes it encodes, so
+that is roughly 3.75 MB of PNG, and 3.5 MB sits under it. The 1568-pixel cap
+matches the long edge Anthropic's models commonly downscale to, so pixels above
+it cost upload time and usually add no detail.
+
+Other readers and other models allow more, and some allow a larger long edge.
+A bigger image is not rejected everywhere — it is simply more than this app
+sends.
 
 Without this step the app sent the pasteboard image as-is. A 24-megapixel
 16-bit photo became a 69 MB PNG that no reader on the far end could accept.
