@@ -94,6 +94,25 @@ private func rep(of data: Data) -> NSBitmapImageRep {
     #expect(rep(of: shrunk).pixelsWide < 1568)
 }
 
+/// `ClipboardReader.pngData()` shrinks outside its main-thread hop, so the whole
+/// redraw runs on whatever queue `performSend()` is using. This guards the
+/// premise that change rests on: off-screen `NSBitmapImageRep` drawing does not
+/// need the main thread. It is a check on the threading model, not a red-green
+/// regression test — it passed before that change too.
+@Test func shrinkingWorksOffTheMainThread() async {
+    let original = makePNG(width: 1600, height: 2000, bitsPerSample: 16)
+
+    let (shrunk, ranOffMain): (Data, Bool) = await withCheckedContinuation { continuation in
+        DispatchQueue.global(qos: .userInitiated).async {
+            continuation.resume(returning: (ImageShrinker.shrink(original), !Thread.isMainThread))
+        }
+    }
+
+    #expect(ranOffMain)
+    #expect(rep(of: shrunk).pixelsHigh == 1568)
+    #expect(rep(of: shrunk).bitsPerSample == 8)
+}
+
 @Test func dataThatIsNotAnImageIsReturnedUnchanged() {
     let garbage = Data("not an image at all".utf8)
 

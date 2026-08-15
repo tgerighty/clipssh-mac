@@ -46,8 +46,7 @@ enum ImageShrinker {
             else { return data }
 
             if candidate.count <= byteBudget || longEdge <= minimumLongEdge {
-                // Re-encoding can in principle inflate an already-tuned PNG.
-                return candidate.count < data.count ? candidate : data
+                return candidate
             }
             longEdge /= 2
         }

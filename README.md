@@ -184,7 +184,7 @@ is reachable.
 ## Testing
 
 The core logic (`ClipsshCore`) has 138 unit tests, and the app layer
-(`ClipsshMac`) has 32 more — 170 in total, all run with `swift test`. They
+(`ClipsshMac`) has 33 more — 171 in total, all run with `swift test`. They
 cover the SSH config parser, the target store, the uploader's error mapping
 and destination validation, the remote command format, target-mutation
 concurrency, the image shrinker, and the Targets window's model. No test
@@ -197,13 +197,13 @@ accessibility tree and asserts nothing. It has never run successfully — it
 needs Accessibility permission granted to the test runner and a logged-in GUI
 session, neither of which CI provides.
 
-CI does not cover everything, either: 10 of the 170 tests construct a real
+CI does not cover everything, either: 10 of the 171 tests construct a real
 `NSStatusItem` or `NSWindow`, which need the same window server the XCUITest
 suite needs and GitHub's macOS runners do not have. They are gated with
 `.enabled(if: hasWindowServer)`, which checks for the `CI` environment
 variable GitHub Actions always sets, and show up as **skipped**, not failed,
 in the CI log. Plain `swift test` on a developer machine has a real window
-server and runs all 170.
+server and runs all 171.
 
 ## Relation to clipssh
 
