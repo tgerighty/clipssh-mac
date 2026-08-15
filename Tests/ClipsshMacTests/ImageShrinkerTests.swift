@@ -63,32 +63,32 @@ private func rep(of data: Data) -> NSBitmapImageRep {
     #expect(ImageShrinker.shrink(original) == original)
 }
 
-@Test func portraitImageOverTheCapIsScaledSoItsHeightIs1568() {
-    let shrunk = rep(of: ImageShrinker.shrink(makePNG(width: 1600, height: 2000)))
+@Test func portraitImageOverTheCapIsScaledSoItsHeightIs1568() throws {
+    let shrunk = rep(of: try #require(ImageShrinker.shrink(makePNG(width: 1600, height: 2000))))
 
     #expect(shrunk.pixelsHigh == 1568)
     #expect(shrunk.pixelsWide == 1254)
 }
 
-@Test func landscapeImageOverTheCapIsScaledSoItsWidthIs1568() {
-    let shrunk = rep(of: ImageShrinker.shrink(makePNG(width: 2400, height: 1200)))
+@Test func landscapeImageOverTheCapIsScaledSoItsWidthIs1568() throws {
+    let shrunk = rep(of: try #require(ImageShrinker.shrink(makePNG(width: 2400, height: 1200))))
 
     #expect(shrunk.pixelsWide == 1568)
     #expect(shrunk.pixelsHigh == 784)
 }
 
-@Test func sixteenBitImageIsFlattenedToEightBit() {
+@Test func sixteenBitImageIsFlattenedToEightBit() throws {
     let original = makePNG(width: 1600, height: 2000, bitsPerSample: 16)
     #expect(rep(of: original).bitsPerSample == 16)
 
-    #expect(rep(of: ImageShrinker.shrink(original)).bitsPerSample == 8)
+    #expect(rep(of: try #require(ImageShrinker.shrink(original))).bitsPerSample == 8)
 }
 
-@Test func noisyImageStillOversizedAfterTheFirstPassIsHalvedUntilItFits() {
+@Test func noisyImageStillOversizedAfterTheFirstPassIsHalvedUntilItFits() throws {
     let original = makePNG(width: 2000, height: 2000, noisy: true)
     #expect(original.count > ImageShrinker.byteBudget)
 
-    let shrunk = ImageShrinker.shrink(original)
+    let shrunk = try #require(ImageShrinker.shrink(original))
 
     #expect(shrunk.count <= ImageShrinker.byteBudget)
     #expect(rep(of: shrunk).pixelsWide < 1568)
@@ -99,18 +99,19 @@ private func rep(of data: Data) -> NSBitmapImageRep {
 /// premise that change rests on: off-screen `NSBitmapImageRep` drawing does not
 /// need the main thread. It is a check on the threading model, not a red-green
 /// regression test — it passed before that change too.
-@Test func shrinkingWorksOffTheMainThread() async {
+@Test func shrinkingWorksOffTheMainThread() async throws {
     let original = makePNG(width: 1600, height: 2000, bitsPerSample: 16)
 
-    let (shrunk, ranOffMain): (Data, Bool) = await withCheckedContinuation { continuation in
+    let (shrunk, ranOffMain): (Data?, Bool) = await withCheckedContinuation { continuation in
         DispatchQueue.global(qos: .userInitiated).async {
             continuation.resume(returning: (ImageShrinker.shrink(original), !Thread.isMainThread))
         }
     }
 
     #expect(ranOffMain)
-    #expect(rep(of: shrunk).pixelsHigh == 1568)
-    #expect(rep(of: shrunk).bitsPerSample == 8)
+    let converted = rep(of: try #require(shrunk))
+    #expect(converted.pixelsHigh == 1568)
+    #expect(converted.bitsPerSample == 8)
 }
 
 @Test func dataThatIsNotAnImageIsReturnedUnchanged() {

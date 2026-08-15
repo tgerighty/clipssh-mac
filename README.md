@@ -141,6 +141,11 @@ The floor is a loop guard, not a real limit. A 196-pixel image holds well under
 3.5 MB whatever it contains, so the budget is always reached first and the
 floor never decides the outcome.
 
+If an image needs converting and every redraw fails, the app sends nothing and
+reports no image on the clipboard. It never falls back to the original. That
+would upload the oversized file this step exists to stop, and call it a
+success — the exact failure that prompted the feature.
+
 PNG data taken straight from the pasteboard passes through byte for byte when
 it is already 8-bit, no more than 1568 pixels on its long edge, and no more
 than 3.5 MB. An ordinary screenshot meets all three, so the app does not

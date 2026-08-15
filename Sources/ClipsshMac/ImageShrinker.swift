@@ -25,7 +25,13 @@ enum ImageShrinker {
     /// Returns `data` untouched when it is already small enough, or when it is
     /// not an image at all — the caller cannot tell the difference and does not
     /// need to.
-    static func shrink(_ data: Data) -> Data {
+    ///
+    /// Returns nil when the image did need converting and no redraw succeeded.
+    /// That fails the send closed: `SendCoordinator` treats a nil pasteboard
+    /// read as "nothing to send" and uploads nothing. Handing back the original
+    /// instead would ship the oversized image this type exists to stop, and
+    /// report success while doing it.
+    static func shrink(_ data: Data) -> Data? {
         guard let source = NSBitmapImageRep(data: data) else { return data }
         let width = source.pixelsWide
         let height = source.pixelsHigh
@@ -49,11 +55,9 @@ enum ImageShrinker {
             }
             // A nil candidate means the allocation, the graphics context or the
             // encoder gave up, and all three are size-dependent, so a smaller
-            // redraw may still succeed. Bailing straight to `data` here would
-            // upload the oversized original — the very thing this type exists
-            // to prevent. Only the floor gives up, and then there is nothing
-            // better left to send.
-            if longEdge <= minimumLongEdge { return data }
+            // redraw may still succeed. Only the floor gives up for good, and
+            // then the send fails rather than falling back to the original.
+            if longEdge <= minimumLongEdge { return nil }
             longEdge /= 2
         }
     }
